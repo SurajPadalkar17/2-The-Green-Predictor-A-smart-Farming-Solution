@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Sensor Data</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 20px auto;
+            text-align: center;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .table-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #343a40;
+            color: white;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        canvas {
+            width: 100% !important;
+            height: 300px !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Real-Time Sensor Data</h2>
+
+        <!-- Table for Real-Time Values -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nitrogen (N)</th>
+                        <th>Phosphorus (P)</th>
+                        <th>Potassium (K)</th>
+                        <th>Temperature (°C)</th>
+                        <th>pH Level</th>
+                        <th>Humidity (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td id="nValue">--</td>
+                        <td id="pValue">--</td>
+                        <td id="kValue">--</td>
+                        <td id="tempValue">--</td>
+                        <td id="phValue">--</td>
+                        <td id="humidityValue">--</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Graphs -->
+        <div class="grid">
+            <div class="card"><canvas id="nChart"></canvas></div>
+            <div class="card"><canvas id="pChart"></canvas></div>
+            <div class="card"><canvas id="kChart"></canvas></div>
+            <div class="card"><canvas id="tempChart"></canvas></div>
+            <div class="card"><canvas id="phChart"></canvas></div>
+            <div class="card"><canvas id="humidityChart"></canvas></div>
+        </div>
+    </div>
+
+    <script>
+        const labels = [];
+        const maxDataPoints = 20; // Show last 20 readings
+
+        function createChart(ctx, label, borderColor, backgroundColor) {
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: [],
+                        borderColor: borderColor,
+                        backgroundColor: backgroundColor,
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { display: true },
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        const nChart = createChart(document.getElementById('nChart').getContext('2d'), 'Nitrogen (N)', 'red', 'rgba(255, 0, 0, 0.2)');
+        const pChart = createChart(document.getElementById('pChart').getContext('2d'), 'Phosphorus (P)', 'blue', 'rgba(0, 0, 255, 0.2)');
+        const kChart = createChart(document.getElementById('kChart').getContext('2d'), 'Potassium (K)', 'green', 'rgba(0, 255, 0, 0.2)');
+        const tempChart = createChart(document.getElementById('tempChart').getContext('2d'), 'Temperature (°C)', 'orange', 'rgba(255, 165, 0, 0.2)');
+        const phChart = createChart(document.getElementById('phChart').getContext('2d'), 'pH Level', 'purple', 'rgba(128, 0, 128, 0.2)');
+        const humidityChart = createChart(document.getElementById('humidityChart').getContext('2d'), 'Humidity (%)', 'teal', 'rgba(0, 128, 128, 0.2)');
+
+        function updateChart(chart, value) {
+            if (labels.length >= maxDataPoints) {
+                labels.shift();
+                chart.data.datasets[0].data.shift();
+            }
+            labels.push(new Date().toLocaleTimeString());
+            chart.data.datasets[0].data.push(value);
+            chart.update();
+        }
+
+        function updateTable(data) {
+            document.getElementById("nValue").textContent = data.N;
+            document.getElementById("pValue").textContent = data.P;
+            document.getElementById("kValue").textContent = data.K;
+            document.getElementById("tempValue").textContent = data.Temperature;
+            document.getElementById("phValue").textContent = data.pH;
+            document.getElementById("humidityValue").textContent = data.Humidity;
+        }
+
+        function fetchData() {
+            $.getJSON('/real-time-data', function(data) {
+                updateChart(nChart, data.N);
+                updateChart(pChart, data.P);
+                updateChart(kChart, data.K);
+                updateChart(tempChart, data.Temperature);
+                updateChart(phChart, data.pH);
+                updateChart(humidityChart, data.Humidity);
+                updateTable(data);
+            });
+        }
+
+        setInterval(fetchData, 5000); // Fetch data every 5 seconds
+    </script>
+
+</body>
+</html>
+  
